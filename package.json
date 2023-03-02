@@ -1,0 +1,7 @@
+{
+  "name": "treemap",
+  "version": "0.0.1",
+  "dependencies": {
+    "typescript": "^4.9.5"
+  }
+}
