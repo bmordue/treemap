@@ -2,6 +2,7 @@
   "name": "treemap",
   "version": "0.0.1",
   "dependencies": {
+    "squarify": "^1.1.0",
     "typescript": "^4.9.5"
   },
   "devDependencies": {

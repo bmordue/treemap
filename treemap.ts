@@ -1,6 +1,7 @@
 // treemap.ts
 import { writeFileSync } from "fs";
-import * as fileData from "./coverage-final.json";
+import * as fileData from "./feature-configure-clients.json";
+import squarify from "squarify";
 
 function filter(data: any) {
   let files = [];
@@ -57,59 +58,82 @@ function treemapSvg(
   const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
-  let remainingHeight = height;
-  let remainingWidth = width;
-  let currX = 0;
-  let currY = 0;
-  let remainingStmts = totalStmts;
-  data
-    .sort((a, b) => {
-      return a.statementCount > b.statementCount ? -1 : 1;
-    })
-    .forEach((item, i) => {
-      // const vertical = i % 2;
-      const horizontal = remainingHeight < remainingWidth;
+  // let remainingHeight = height;
+  // let remainingWidth = width;
+  // let currX = 0;
+  // let currY = 0;
+  // let remainingStmts = totalStmts;
+  // data
+  //   .sort((a, b) => {
+  //     return a.statementCount > b.statementCount ? -1 : 1;
+  //   })
+  //   .forEach((item, i) => {
+  //     // const vertical = i % 2;
+  //     const horizontal = remainingHeight < remainingWidth;
 
-      let rectWidth;
-      let rectHeight;
+  //     let rectWidth;
+  //     let rectHeight;
 
-      if (horizontal) {
-        rectWidth = (remainingWidth * item.statementCount) / remainingStmts;
-        rectHeight = remainingHeight;
-      } else {
-        rectWidth = remainingWidth;
-        rectHeight = (remainingWidth * item.statementCount) / remainingStmts;
-      }
+  //     if (horizontal) {
+  //       rectWidth = (remainingWidth * item.statementCount) / remainingStmts;
+  //       rectHeight = remainingHeight;
+  //     } else {
+  //       rectWidth = remainingWidth;
+  //       rectHeight = (remainingWidth * item.statementCount) / remainingStmts;
+  //     }
 
-      const colour =
-        item.statementCoverage > coverageThreshold ? "green" : "red";
-      const opacity =
-        item.statementCoverage > coverageThreshold
-          ? 0.5
-          : 1 - item.statementCoverage;
-      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height=${rectHeight} fill=${colour} stroke="black" stroke-width="5" opacity="${opacity}"> <title>${
-        item.filename
-      }:${item.statementCount} (${Math.round(
-        item.statementCoverage * 100
-      )}%)</title> </rect>`;
+  //     const colour =
+  //       item.statementCoverage > coverageThreshold ? "green" : "red";
+  //     const opacity =
+  //       item.statementCoverage > coverageThreshold
+  //         ? 0.5
+  //         : 1 - item.statementCoverage;
+  //     let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height=${rectHeight} fill=${colour} stroke="black" stroke-width="5" opacity="${opacity}"> <title>${
+  //       item.filename
+  //     }:${item.statementCount} (${Math.round(
+  //       item.statementCoverage * 100
+  //     )}%)</title> </rect>`;
 
-      svgBody += svgRect;
+  //     svgBody += svgRect;
 
-      if (horizontal) {
-        currX += rectWidth;
-        remainingWidth -= rectWidth;
-      } else {
-        currY += rectHeight;
-        remainingHeight -= rectHeight;
-      }
-      remainingStmts -= item.statementCount;
-    });
+  //     if (horizontal) {
+  //       currX += rectWidth;
+  //       remainingWidth -= rectWidth;
+  //     } else {
+  //       currY += rectHeight;
+  //       remainingHeight -= rectHeight;
+  //     }
+  //     remainingStmts -= item.statementCount;
+  //   });
+
+  const root = {
+    value: totalStmts,
+    children: data.map((d) => {
+      return { value: d.statementCount, children: [] as any[] };
+    }),
+  };
+  const squarified = squarify(root.children, {
+    x0: 0,
+    y0: 0,
+    x1: 400,
+    y1: 200,
+  });
+
+  squarified.forEach((square) => {
+    svgBody += `<rect x="${square.x0}" y="${square.y0}" width="${
+      square.x1 - square.x0
+    }" height="${
+      square.y1 - square.y0
+    }" stroke="red" stroke-width="2" fill="transparent" />`;
+  });
+
+  console.log(squarified);
 
   return svgHeader + svgBody + svgFooter;
 }
 
 function main() {
-  writeFileSync("rect.html", treemapSvg(filter(fileData)));
+  writeFileSync("treemap.html", treemapSvg(filter(fileData)));
 }
 
 main();
