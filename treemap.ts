@@ -1,6 +1,5 @@
 // treemap.ts
-import { writeFileSync } from "fs";
-import * as fileData from "./coverage-final.json";
+import { readFileSync, writeFileSync } from "fs";
 
 function filter(data: any) {
   let files = [];
@@ -109,7 +108,17 @@ function treemapSvg(
 }
 
 function main() {
-  writeFileSync("rect.html", treemapSvg(filter(fileData)));
+  if (process.argv[2] && process.argv[2] === "--help") {
+    console.log("\nUsage: node treemap [coverage.json] [output.html]");
+    return;
+  }
+  const inputFilename = process.argv[2] || "coverage-final.json";
+  let outputFilename = process.argv[3] || "output.html";
+  const inputData = JSON.parse(readFileSync(inputFilename).toString());
+
+  writeFileSync(outputFilename, treemapSvg(filter(inputData)));
 }
 
-main();
+if (require.main === module) {
+  main();
+}
