@@ -107,6 +107,28 @@ function treemapSvg(
   return svgHeader + svgBody + svgFooter;
 }
 
+// graphviz dot file output, using the "patchwork" layout
+function treemapDot(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[]
+) {
+  const coverageThreshold = 0.8;
+  const dotHeader = "graph {\n    layout=patchwork\n    node [style=filled]";
+  let dotBody = "\n";
+  const dotFooter = "\n}";
+
+  data.forEach((item) => {
+    const colour = item.statementCoverage > coverageThreshold ? "green" : "red";
+    const label = `${item.filename}\n(${item.statementCount} stmts; ${item.statementCoverage} cov)`;
+    const area = item.statementCount;
+    dotBody += `"${label}" [area=${area} fillcolor=${colour}]\n`;
+  });
+
+  return dotHeader + dotBody + dotFooter;
+}
 function main() {
   if (process.argv[2] && process.argv[2] === "--help") {
     console.log("\nUsage: node treemap [coverage.json] [output.html]");
@@ -116,7 +138,7 @@ function main() {
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
 
-  writeFileSync(outputFilename, treemapSvg(filter(inputData)));
+  writeFileSync(outputFilename, treemapDot(filter(inputData)));
 }
 
 if (require.main === module) {
