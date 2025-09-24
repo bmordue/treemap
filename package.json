@@ -1,6 +1,17 @@
 {
   "name": "treemap",
   "version": "0.0.1",
+  "description": "Generate treemap visualizations from Jest coverage data",
+  "main": "built/treemap.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node built/treemap.js",
+    "dev": "tsc --watch",
+    "clean": "rm -rf built/"
+  },
+  "keywords": ["coverage", "treemap", "visualization", "jest"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "typescript": "^4.9.5"
   },
