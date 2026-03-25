@@ -77,20 +77,17 @@ function treemapSvg(
         rectHeight = remainingHeight;
       } else {
         rectWidth = remainingWidth;
-        rectHeight = (remainingWidth * item.statementCount) / remainingStmts;
+        rectHeight = (remainingHeight * item.statementCount) / remainingStmts;
       }
 
       const colour =
-        item.statementCoverage > coverageThreshold ? "green" : "red";
+        item.statementCoverage > coverageThreshold ? "#009e73" : "#d55e00";
       const opacity =
         item.statementCoverage > coverageThreshold
           ? 0.5
           : 1 - item.statementCoverage;
-      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height=${rectHeight} fill=${colour} stroke="black" stroke-width="5" opacity="${opacity}"> <title>${
-        item.filename
-      }:${item.statementCount} (${Math.round(
-        item.statementCoverage * 100
-      )}%)</title> </rect>`;
+      const roundedCoverage = Math.round(item.statementCoverage * 100);
+      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height=${rectHeight} fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
 
       svgBody += svgRect;
 
@@ -121,10 +118,12 @@ function treemapDot(
   const dotFooter = "\n}";
 
   data.forEach((item) => {
-    const colour = item.statementCoverage > coverageThreshold ? "green" : "red";
-    const label = `${item.filename}\n(${item.statementCount} stmts; ${item.statementCoverage} cov)`;
+    const colour =
+      item.statementCoverage > coverageThreshold ? "#009e73" : "#d55e00";
+    const roundedCoverage = Math.round(item.statementCoverage * 100);
+    const label = `${item.filename}\n(${item.statementCount} stmts; ${roundedCoverage}% cov)`;
     const area = item.statementCount;
-    dotBody += `"${label}" [area=${area} fillcolor=${colour}]\n`;
+    dotBody += `"${label}" [area=${area} fillcolor="${colour}"]\n`;
   });
 
   return dotHeader + dotBody + dotFooter;
@@ -138,7 +137,11 @@ function main() {
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
 
-  writeFileSync(outputFilename, treemapDot(filter(inputData)));
+  if (outputFilename.endsWith(".html") || outputFilename.endsWith(".svg")) {
+    writeFileSync(outputFilename, treemapSvg(filter(inputData)));
+  } else {
+    writeFileSync(outputFilename, treemapDot(filter(inputData)));
+  }
 }
 
 if (require.main === module) {
