@@ -87,7 +87,7 @@ function treemapSvg(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height=${rectHeight} fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
+      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
 
       svgBody += svgRect;
 
@@ -137,7 +137,7 @@ function main() {
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
 
-  if (outputFilename.endsWith(".html") || outputFilename.endsWith(".svg")) {
+  if (outputFilename.toLowerCase().endsWith(".html") || outputFilename.toLowerCase().endsWith(".svg")) {
     writeFileSync(outputFilename, treemapSvg(filter(inputData)));
   } else {
     writeFileSync(outputFilename, treemapDot(filter(inputData)));
