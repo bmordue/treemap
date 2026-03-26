@@ -55,7 +55,7 @@ function treemapSvg(
     body { font-family: sans-serif; margin: 2rem; }
     .treemap-container { max-width: 800px; margin: 0 auto; }
     svg { width: 100%; height: auto; display: block; }
-    rect { transition: filter 0.2s; cursor: pointer; }
+    rect { transition: filter 0.2s; }
     rect:hover { filter: brightness(1.2); }
     .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
     .legend-item { display: flex; align-items: center; gap: 0.5rem; }
@@ -75,7 +75,7 @@ function treemapSvg(
         <span>High Coverage (&gt;80%)</span>
       </div>
       <div class="legend-item">
-        <div class="legend-color" style="background-color: #d55e00;"></div>
+        <div class="legend-color" style="background: linear-gradient(to right, rgba(213, 94, 0, 0.2), rgba(213, 94, 0, 1));"></div>
         <span>Low Coverage (&le;80%)</span>
       </div>
     </div>
@@ -83,7 +83,7 @@ function treemapSvg(
 </body>
 </html>`;
 
-  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
+  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
   let remainingHeight = height;
