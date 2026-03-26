@@ -6,7 +6,7 @@ function filter(data: any) {
   for (const prop in data) {
     const item = data[prop];
     if (item.path) {
-      const tokens = item.path.split("\\");
+      const tokens = item.path.split(/[\\\/]/);
       let stmtCount = 0;
       let coveredStmtCount = 0;
       for (const entry in item.s) {
@@ -49,9 +49,39 @@ function treemapSvg(
 
   const width = 400;
   const height = 200;
-  let svgHeader = `<html> <svg width=${width} height=${height}> <g> `;
+  let svgHeader = `<html>
+<head>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    .treemap-container { max-width: 800px; margin: 0 auto; }
+    svg { width: 100%; height: auto; display: block; }
+    rect { transition: filter 0.2s; cursor: pointer; }
+    rect:hover { filter: brightness(1.2); }
+    .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+    .legend-color { width: 1rem; height: 1rem; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="treemap-container">
+    <svg viewBox="0 0 ${width} ${height}">
+      <g> `;
   let svgBody = "";
-  let svgFooter = "</g> </svg> </html>";
+  let svgFooter = `      </g>
+    </svg>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #009e73; opacity: 0.5;"></div>
+        <span>High Coverage (&gt;80%)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #d55e00;"></div>
+        <span>Low Coverage (&le;80%)</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
   const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
