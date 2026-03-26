@@ -2,9 +2,9 @@
   "name": "treemap",
   "version": "0.0.1",
   "dependencies": {
-    "typescript": "^4.9.5"
+    "typescript": "^6.0.2"
   },
   "devDependencies": {
-    "@types/node": "^18.14.4"
+    "@types/node": "^25.5.0"
   }
 }
