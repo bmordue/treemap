@@ -38,15 +38,104 @@ function filter(data: any) {
 // <rect x="0" y="0" [attr.width]="width" [attr.height]="height" stroke="red" stroke-width="2" fill="transparent" />
 // </svg>
 
+function buildRects(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[],
+  width: number,
+  height: number
+): string {
+  const coverageThreshold = 0.8;
+  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
+  console.log(`Found ${totalStmts} statements in ${data.length} files.`);
+
+  let svgBody = "";
+  let remainingHeight = height;
+  let remainingWidth = width;
+  let currX = 0;
+  let currY = 0;
+  let remainingStmts = totalStmts;
+  data
+    .sort((a, b) => {
+      return a.statementCount > b.statementCount ? -1 : 1;
+    })
+    .forEach((item) => {
+      const horizontal = remainingHeight < remainingWidth;
+
+      let rectWidth;
+      let rectHeight;
+
+      if (horizontal) {
+        rectWidth = (remainingWidth * item.statementCount) / remainingStmts;
+        rectHeight = remainingHeight;
+      } else {
+        rectWidth = remainingWidth;
+        rectHeight = (remainingHeight * item.statementCount) / remainingStmts;
+      }
+
+      const colour =
+        item.statementCoverage > coverageThreshold ? "#009e73" : "#d55e00";
+      const opacity =
+        item.statementCoverage > coverageThreshold
+          ? 0.5
+          : 1 - item.statementCoverage;
+      const roundedCoverage = Math.round(item.statementCoverage * 100);
+      svgBody += `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
+
+      if (horizontal) {
+        currX += rectWidth;
+        remainingWidth -= rectWidth;
+      } else {
+        currY += rectHeight;
+        remainingHeight -= rectHeight;
+      }
+      remainingStmts -= item.statementCount;
+    });
+
+  return svgBody;
+}
+
 function treemapSvg(
   data: {
     filename: string;
     statementCount: number;
     statementCoverage: number;
   }[]
-) {
-  const coverageThreshold = 0.8;
+): string {
+  const width = 400;
+  const height = 200;
+  const legendY = height + 20;
+  const svgHeight = height + 50;
 
+  const rects = buildRects(data, width, height);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap">
+  <defs>
+    <style>
+      rect { transition: filter 0.2s; }
+      rect:hover { filter: brightness(1.2); }
+      .legend-label { font-family: sans-serif; font-size: 9px; }
+    </style>
+  </defs>
+  <g>${rects}</g>
+  <g aria-label="Legend">
+    <rect x="0" y="${legendY}" width="12" height="12" fill="#009e73" opacity="0.5" rx="2"/>
+    <text x="16" y="${legendY + 10}" class="legend-label">High Coverage (&gt;80%)</text>
+    <rect x="120" y="${legendY}" width="12" height="12" fill="#d55e00" opacity="0.5" rx="2"/>
+    <text x="136" y="${legendY + 10}" class="legend-label">Low Coverage (&le;80%)</text>
+  </g>
+</svg>`;
+}
+
+function treemapHtml(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[]
+): string {
   const width = 400;
   const height = 200;
   let svgHeader = `<html>
@@ -83,53 +172,7 @@ function treemapSvg(
 </body>
 </html>`;
 
-  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
-  console.log(`Found ${totalStmts} statements in ${data.length} files.`);
-
-  let remainingHeight = height;
-  let remainingWidth = width;
-  let currX = 0;
-  let currY = 0;
-  let remainingStmts = totalStmts;
-  data
-    .sort((a, b) => {
-      return a.statementCount > b.statementCount ? -1 : 1;
-    })
-    .forEach((item, i) => {
-      // const vertical = i % 2;
-      const horizontal = remainingHeight < remainingWidth;
-
-      let rectWidth;
-      let rectHeight;
-
-      if (horizontal) {
-        rectWidth = (remainingWidth * item.statementCount) / remainingStmts;
-        rectHeight = remainingHeight;
-      } else {
-        rectWidth = remainingWidth;
-        rectHeight = (remainingHeight * item.statementCount) / remainingStmts;
-      }
-
-      const colour =
-        item.statementCoverage > coverageThreshold ? "#009e73" : "#d55e00";
-      const opacity =
-        item.statementCoverage > coverageThreshold
-          ? 0.5
-          : 1 - item.statementCoverage;
-      const roundedCoverage = Math.round(item.statementCoverage * 100);
-      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
-
-      svgBody += svgRect;
-
-      if (horizontal) {
-        currX += rectWidth;
-        remainingWidth -= rectWidth;
-      } else {
-        currY += rectHeight;
-        remainingHeight -= rectHeight;
-      }
-      remainingStmts -= item.statementCount;
-    });
+  svgBody = buildRects(data, width, height);
 
   return svgHeader + svgBody + svgFooter;
 }
@@ -160,15 +203,17 @@ function treemapDot(
 }
 function main() {
   if (process.argv[2] && process.argv[2] === "--help") {
-    console.log("\nUsage: node treemap [coverage.json] [output.html]");
+    console.log("\nUsage: node treemap [coverage.json] [output.{html|svg|dot}]");
     return;
   }
   const inputFilename = process.argv[2] || "coverage-final.json";
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
 
-  if (outputFilename.toLowerCase().endsWith(".html") || outputFilename.toLowerCase().endsWith(".svg")) {
+  if (outputFilename.toLowerCase().endsWith(".svg")) {
     writeFileSync(outputFilename, treemapSvg(filter(inputData)));
+  } else if (outputFilename.toLowerCase().endsWith(".html")) {
+    writeFileSync(outputFilename, treemapHtml(filter(inputData)));
   } else {
     writeFileSync(outputFilename, treemapDot(filter(inputData)));
   }
