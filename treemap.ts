@@ -39,13 +39,15 @@ function filter(data: any) {
 // <rect x="0" y="0" [attr.width]="width" [attr.height]="height" stroke="red" stroke-width="2" fill="transparent" />
 // </svg>
 
-function treemapSvg(
+function buildRects(
   data: {
     filename: string;
     statementCount: number;
     statementCoverage: number;
-  }[]
-) {
+  }[],
+  width: number,
+  height: number
+): string {
   const coverageThreshold = 0.8;
 
   const width = 400;
@@ -62,6 +64,7 @@ function treemapSvg(
   const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
+  let svgBody = "";
   let remainingHeight = height;
   let remainingWidth = width;
   let currX = 0;
@@ -71,8 +74,7 @@ function treemapSvg(
     .sort((a, b) => {
       return a.statementCount > b.statementCount ? -1 : 1;
     })
-    .forEach((item, i) => {
-      // const vertical = i % 2;
+    .forEach((item) => {
       const horizontal = remainingHeight < remainingWidth;
 
       let rectWidth;
@@ -93,9 +95,7 @@ function treemapSvg(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      let svgRect = `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
-
-      svgBody += svgRect;
+      svgBody += `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}:${item.statementCount} (${roundedCoverage}%)</title> </rect>`;
 
       if (horizontal) {
         currX += rectWidth;
@@ -106,6 +106,86 @@ function treemapSvg(
       }
       remainingStmts -= item.statementCount;
     });
+
+  return svgBody;
+}
+
+function treemapSvg(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[]
+): string {
+  const width = 400;
+  const height = 200;
+  const legendY = height + 20;
+  const svgHeight = height + 50;
+
+  const rects = buildRects(data, width, height);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap">
+  <defs>
+    <style>
+      rect { transition: filter 0.2s; }
+      rect:hover { filter: brightness(1.2); }
+      .legend-label { font-family: sans-serif; font-size: 9px; }
+    </style>
+  </defs>
+  <g>${rects}</g>
+  <g aria-label="Legend">
+    <rect x="0" y="${legendY}" width="12" height="12" fill="#009e73" opacity="0.5" rx="2"/>
+    <text x="16" y="${legendY + 10}" class="legend-label">High Coverage (&gt;80%)</text>
+    <rect x="120" y="${legendY}" width="12" height="12" fill="#d55e00" opacity="0.5" rx="2"/>
+    <text x="136" y="${legendY + 10}" class="legend-label">Low Coverage (&le;80%)</text>
+  </g>
+</svg>`;
+}
+
+function treemapHtml(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[]
+): string {
+  const width = 400;
+  const height = 200;
+  let svgHeader = `<html>
+<head>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    .treemap-container { max-width: 800px; margin: 0 auto; }
+    svg { width: 100%; height: auto; display: block; }
+    rect { transition: filter 0.2s; }
+    rect:hover { filter: brightness(1.2); }
+    .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+    .legend-color { width: 1rem; height: 1rem; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="treemap-container">
+    <svg viewBox="0 0 ${width} ${height}">
+      <g> `;
+  let svgBody = "";
+  let svgFooter = `      </g>
+    </svg>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #009e73; opacity: 0.5;"></div>
+        <span>High Coverage (&gt;80%)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(to right, rgba(213, 94, 0, 0.2), rgba(213, 94, 0, 1));"></div>
+        <span>Low Coverage (&le;80%)</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  svgBody = buildRects(data, width, height);
 
   return svgHeader + svgBody + svgFooter;
 }
@@ -176,7 +256,7 @@ function treemapDot(
 }
 function main() {
   if (process.argv[2] && process.argv[2] === "--help") {
-    console.log("\nUsage: node treemap [coverage.json] [output.html]");
+    console.log("\nUsage: node treemap [coverage.json] [output.{html|svg|dot}]");
     return;
   }
   const inputFilename = process.argv[2] || "coverage-final.json";
@@ -187,6 +267,8 @@ function main() {
     writeFileSync(outputFilename, treemapHtml(filter(inputData)));
   } else if (outputFilename.toLowerCase().endsWith(".svg")) {
     writeFileSync(outputFilename, treemapSvg(filter(inputData)));
+  } else if (outputFilename.toLowerCase().endsWith(".html")) {
+    writeFileSync(outputFilename, treemapHtml(filter(inputData)));
   } else {
     writeFileSync(outputFilename, treemapDot(filter(inputData)));
   }
