@@ -1,12 +1,13 @@
 // treemap.ts
 import { readFileSync, writeFileSync } from "fs";
+import * as path from "path";
 
 function filter(data: any) {
   let files = [];
   for (const prop in data) {
     const item = data[prop];
     if (item.path) {
-      const tokens = item.path.split(/[\\\/]/);
+      const filename = path.basename(item.path.replace(/\\/g, "/"));
       let stmtCount = 0;
       let coveredStmtCount = 0;
       for (const entry in item.s) {
@@ -16,7 +17,7 @@ function filter(data: any) {
 
       const coverage = coveredStmtCount / stmtCount;
       files.push({
-        filename: tokens[tokens.length - 1],
+        filename,
         statementCount: stmtCount,
         statementCoverage: coverage,
       });
@@ -49,41 +50,16 @@ function treemapSvg(
 
   const width = 400;
   const height = 200;
-  let svgHeader = `<html>
-<head>
-  <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    .treemap-container { max-width: 800px; margin: 0 auto; }
-    svg { width: 100%; height: auto; display: block; }
-    rect { transition: filter 0.2s; }
-    rect:hover { filter: brightness(1.2); }
-    .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
-    .legend-item { display: flex; align-items: center; gap: 0.5rem; }
-    .legend-color { width: 1rem; height: 1rem; border-radius: 2px; }
-  </style>
-</head>
-<body>
-  <div class="treemap-container">
-    <svg viewBox="0 0 ${width} ${height}">
-      <g> `;
+  let svgHeader = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+<style>
+  rect { transition: filter 0.2s; cursor: pointer; }
+  rect:hover { filter: brightness(1.2); }
+</style>
+<g>`;
   let svgBody = "";
-  let svgFooter = `      </g>
-    </svg>
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color" style="background-color: #009e73; opacity: 0.5;"></div>
-        <span>High Coverage (&gt;80%)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: linear-gradient(to right, rgba(213, 94, 0, 0.2), rgba(213, 94, 0, 1));"></div>
-        <span>Low Coverage (&le;80%)</span>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  let svgFooter = "</g></svg>";
 
-  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
+  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
   let remainingHeight = height;
@@ -134,6 +110,46 @@ function treemapSvg(
   return svgHeader + svgBody + svgFooter;
 }
 
+function treemapHtml(
+  data: {
+    filename: string;
+    statementCount: number;
+    statementCoverage: number;
+  }[]
+) {
+  const width = 400;
+  const height = 200;
+  const svg = treemapSvg(data);
+
+  return `<html>
+<head>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    .treemap-container { max-width: 800px; margin: 0 auto; }
+    svg { width: 100%; height: auto; display: block; }
+    .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+    .legend-color { width: 1rem; height: 1rem; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="treemap-container">
+    ${svg}
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #009e73; opacity: 0.5;"></div>
+        <span>High Coverage (&gt;80%)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #d55e00;"></div>
+        <span>Low Coverage (&le;80%)</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 // graphviz dot file output, using the "patchwork" layout
 function treemapDot(
   data: {
@@ -167,7 +183,9 @@ function main() {
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
 
-  if (outputFilename.toLowerCase().endsWith(".html") || outputFilename.toLowerCase().endsWith(".svg")) {
+  if (outputFilename.toLowerCase().endsWith(".html")) {
+    writeFileSync(outputFilename, treemapHtml(filter(inputData)));
+  } else if (outputFilename.toLowerCase().endsWith(".svg")) {
     writeFileSync(outputFilename, treemapSvg(filter(inputData)));
   } else {
     writeFileSync(outputFilename, treemapDot(filter(inputData)));
