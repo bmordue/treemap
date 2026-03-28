@@ -84,7 +84,19 @@ function buildRects(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      svgBody += `<rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage"> <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered)</title> </rect>`;
+      svgBody += `<g>
+        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage">
+          <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered)</title>
+        </rect>`;
+
+      if (rectWidth > 60 && rectHeight > 40) {
+        const midX = currX + rectWidth / 2;
+        const midY = currY + rectHeight / 2;
+        svgBody += `
+        <text x="${midX}" y="${midY - 5}" class="rect-label" dominant-baseline="middle" text-anchor="middle" aria-hidden="true" style="pointer-events: none;">${item.filename}</text>
+        <text x="${midX}" y="${midY + 7}" class="rect-sublabel" dominant-baseline="middle" text-anchor="middle" aria-hidden="true" style="pointer-events: none;">${roundedCoverage}%</text>`;
+      }
+      svgBody += `</g>`;
 
       if (horizontal) {
         currX += rectWidth;
@@ -120,6 +132,8 @@ function treemapSvg(
       rect:hover, rect:focus-visible { filter: brightness(1.2); outline: 2px solid #333; outline-offset: 1px; }
       .legend-label { font-family: sans-serif; font-size: 9px; }
       .legend-note { font-family: sans-serif; font-size: 7px; fill: #666; }
+      .rect-label { font-family: sans-serif; font-size: 10px; font-weight: bold; fill: #333; }
+      .rect-sublabel { font-family: sans-serif; font-size: 8px; fill: #333; }
     </style>
   </defs>
   <g>${rects}</g>
