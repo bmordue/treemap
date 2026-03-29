@@ -92,8 +92,13 @@ function buildRects(
       if (rectWidth > 60 && rectHeight > 40) {
         const midX = currX + rectWidth / 2;
         const midY = currY + rectHeight / 2;
+        const maxChars = Math.floor((rectWidth - 10) / 6);
+        const name =
+          item.filename.length > maxChars && maxChars > 3
+            ? item.filename.substring(0, maxChars - 3) + "..."
+            : item.filename;
         svgBody += `
-        <text x="${midX}" y="${midY - 5}" class="rect-label" dominant-baseline="middle" text-anchor="middle" aria-hidden="true" style="pointer-events: none;">${item.filename}</text>
+        <text x="${midX}" y="${midY - 5}" class="rect-label" dominant-baseline="middle" text-anchor="middle" aria-hidden="true" style="pointer-events: none;">${name}</text>
         <text x="${midX}" y="${midY + 7}" class="rect-sublabel" dominant-baseline="middle" text-anchor="middle" aria-hidden="true" style="pointer-events: none;">${roundedCoverage}%</text>`;
       }
       svgBody += `</g>`;
@@ -128,12 +133,13 @@ function treemapSvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap">
   <defs>
     <style>
-      rect { transition: filter 0.2s, outline 0.2s; outline: none; cursor: pointer; }
-      rect:hover, rect:focus-visible { filter: brightness(1.2); outline: 2px solid #333; outline-offset: 1px; }
-      .legend-label { font-family: sans-serif; font-size: 9px; }
-      .legend-note { font-family: sans-serif; font-size: 7px; fill: #666; }
-      .rect-label { font-family: sans-serif; font-size: 10px; font-weight: bold; fill: #333; }
-      .rect-sublabel { font-family: sans-serif; font-size: 8px; fill: #333; }
+      rect { transition: filter 0.2s, transform 0.2s, outline 0.2s; outline: none; cursor: pointer; transform-origin: center; transform-box: fill-box; }
+      rect:hover, rect:focus-visible { filter: brightness(1.1); transform: scale(1.02); outline: 2px solid #333; outline-offset: 1px; }
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .legend-label { font-size: 9px; }
+      .legend-note { font-size: 7px; fill: #666; }
+      .rect-label { font-size: 10px; font-weight: bold; fill: #333; }
+      .rect-sublabel { font-size: 8px; fill: #333; }
     </style>
   </defs>
   <g>${rects}</g>
@@ -162,7 +168,7 @@ function treemapHtml(
 <head>
   <style>
     body { font-family: sans-serif; margin: 2rem; }
-    .treemap-container { max-width: 800px; margin: 0 auto; }
+    .treemap-container { max-width: 800px; margin: 0 auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     svg { width: 100%; height: auto; display: block; }
     rect:focus-visible { outline: 3px solid #333; outline-offset: 1px; }
     .legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; font-size: 0.9rem; }
