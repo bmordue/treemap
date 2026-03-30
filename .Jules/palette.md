@@ -5,3 +5,7 @@
 ## 2025-05-23 - [In-place Treemap Labels]
 **Learning:** While tooltips (via `<title>` or `aria-label`) are great for detailed information, they require user interaction (hover/focus). Adding visible text labels directly onto the treemap cells significantly improves the "at-a-glance" utility of the visualization. However, labels must be conditionally rendered based on cell size to prevent clutter and overlap.
 **Action:** Use conditional logic (e.g., `width > 60 && height > 40`) to show labels only when they fit, and ensure they are non-interactive (`pointer-events: none`) to keep the focus on the underlying data elements.
+
+## 2025-05-24 - [Graceful Empty States]
+**Learning:** Visualizations like treemaps should have a clear, accessible empty state to provide feedback when no data is available, rather than crashing or showing a blank screen. This improves the developer experience and makes the tool more robust.
+**Action:** Implement graceful empty state handling with helpful instructions and CLI warnings whenever a visualization might receive an empty dataset.
