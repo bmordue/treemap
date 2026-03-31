@@ -50,7 +50,14 @@ function buildRects(
 ): string {
   const coverageThreshold = 0.8;
 
-  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b);
+  const totalStmts = data
+    .map((d) => d.statementCount)
+    .reduce((a, b) => a + b, 0);
+
+  if (totalStmts === 0) {
+    return "";
+  }
+
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
   let svgBody = "";
@@ -130,6 +137,19 @@ function treemapSvg(
 
   const rects = buildRects(data, width, height);
 
+  if (!rects) {
+    console.warn("No coverage data found to visualize.");
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap - No Data Found">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" rx="4" />
+  <text x="${width / 2}" y="${height / 2}" dominant-baseline="middle" text-anchor="middle" fill="#6c757d" font-size="14">No Coverage Data Found</text>
+</svg>`;
+  }
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap">
   <defs>
     <style>
@@ -198,6 +218,14 @@ function treemapDot(
   const dotHeader = "graph {\n    layout=patchwork\n    node [style=filled]";
   let dotBody = "\n";
   const dotFooter = "\n}";
+
+  if (data.length === 0) {
+    return (
+      dotHeader +
+      '\n"No Coverage Data Found" [shape=none]\n' +
+      dotFooter
+    );
+  }
 
   data.forEach((item) => {
     const colour =
