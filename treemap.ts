@@ -2,12 +2,21 @@
 import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 
-function filter(data: any) {
-  let files = [];
+interface FileCoverage {
+  filename: string;
+  fullPath: string;
+  statementCount: number;
+  coveredStatementCount: number;
+  statementCoverage: number;
+}
+
+function filter(data: any): FileCoverage[] {
+  let files: FileCoverage[] = [];
   for (const prop in data) {
     const item = data[prop];
     if (item.path) {
       const filename = path.basename(item.path.replace(/\\/g, "/"));
+      const fullPath = item.path;
       let stmtCount = 0;
       let coveredStmtCount = 0;
       for (const entry in item.s) {
@@ -18,6 +27,7 @@ function filter(data: any) {
       const coverage = coveredStmtCount / stmtCount;
       files.push({
         filename,
+        fullPath,
         statementCount: stmtCount,
         coveredStatementCount: coveredStmtCount,
         statementCoverage: coverage,
@@ -41,12 +51,7 @@ function filter(data: any) {
 // </svg>
 
 function buildRects(
-  data: {
-    filename: string;
-    statementCount: number;
-    coveredStatementCount: number;
-    statementCoverage: number;
-  }[],
+  data: FileCoverage[],
   width: number,
   height: number
 ): string {
@@ -94,7 +99,7 @@ function buildRects(
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
       svgBody += `<g>
-        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage">
+        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" data-path="${item.fullPath}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage">
           <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered)</title>
         </rect>`;
 
@@ -125,14 +130,7 @@ function buildRects(
   return svgBody;
 }
 
-function treemapSvg(
-  data: {
-    filename: string;
-    statementCount: number;
-    coveredStatementCount: number;
-    statementCoverage: number;
-  }[]
-): string {
+function treemapSvg(data: FileCoverage[]): string {
   const width = 400;
   const height = 200;
   const legendY = height + 20;
@@ -188,14 +186,7 @@ function treemapSvg(
 </svg>`;
 }
 
-function treemapHtml(
-  data: {
-    filename: string;
-    statementCount: number;
-    coveredStatementCount: number;
-    statementCoverage: number;
-  }[]
-) {
+function treemapHtml(data: FileCoverage[]) {
   const svg = treemapSvg(data);
   const totalStmts = data.reduce((acc, d) => acc + d.statementCount, 0);
   const totalCovered = data.reduce((acc, d) => acc + d.coveredStatementCount, 0);
@@ -210,6 +201,8 @@ function treemapHtml(
     .title { font-size: 1.5rem; font-weight: bold; color: #1a202c; margin: 0; }
     .summary { font-size: 1rem; color: #4a5568; margin-top: 0.5rem; }
     svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -220,19 +213,26 @@ function treemapHtml(
     </div>
     ${svg}
   </div>
+  <div id="toast" class="toast">Path copied to clipboard!</div>
+  <script>
+    document.querySelector('svg').addEventListener('click', (e) => {
+      const rect = e.target.closest('rect[data-path]');
+      if (rect) {
+        const path = rect.getAttribute('data-path');
+        navigator.clipboard.writeText(path).then(() => {
+          const toast = document.getElementById('toast');
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 2000);
+        });
+      }
+    });
+  </script>
 </body>
 </html>`;
 }
 
 // graphviz dot file output, using the "patchwork" layout
-function treemapDot(
-  data: {
-    filename: string;
-    statementCount: number;
-    coveredStatementCount: number;
-    statementCoverage: number;
-  }[]
-) {
+function treemapDot(data: FileCoverage[]) {
   const coverageThreshold = 0.8;
   const totalStmts = data.reduce((acc, d) => acc + d.statementCount, 0);
   const totalCovered = data.reduce((acc, d) => acc + d.coveredStatementCount, 0);
