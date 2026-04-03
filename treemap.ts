@@ -99,8 +99,8 @@ function buildRects(
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
       svgBody += `<g>
-        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" data-path="${item.fullPath}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage">
-          <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered)</title>
+        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="button" tabindex="0" data-path="${item.fullPath}" data-filename="${item.filename}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage. Click to copy path.">
+          <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered) - Click to copy path</title>
         </rect>`;
 
       if (rectWidth > 60 && rectHeight > 40) {
@@ -181,7 +181,7 @@ function treemapSvg(data: FileCoverage[]): string {
     <rect x="120" y="${legendY}" width="12" height="12" fill="url(#low-cov-gradient)" rx="2"/>
     <text x="136" y="${legendY + 10}" class="legend-label">Low Coverage (&le;80%)</text>
     <text x="245" y="${legendY + 10}" class="legend-note">* Higher opacity = lower percentage.</text>
-    <text x="0" y="${summaryY}" class="summary-text">Overall Coverage: ${overallCoverage}% (${totalStmts} statements)</text>
+    <text x="0" y="${summaryY}" class="summary-text">Overall Coverage: ${overallCoverage}% (${totalCovered}/${totalStmts} statements)</text>
   </g>
 </svg>`;
 }
@@ -215,15 +215,29 @@ function treemapHtml(data: FileCoverage[]) {
   </div>
   <div id="toast" class="toast">Path copied to clipboard!</div>
   <script>
-    document.querySelector('svg').addEventListener('click', (e) => {
-      const rect = e.target.closest('rect[data-path]');
-      if (rect) {
-        const path = rect.getAttribute('data-path');
-        navigator.clipboard.writeText(path).then(() => {
-          const toast = document.getElementById('toast');
-          toast.classList.add('show');
-          setTimeout(() => toast.classList.remove('show'), 2000);
-        });
+    let toastTimeout;
+    const copyPath = (rect) => {
+      if (!rect) return;
+      const path = rect.getAttribute('data-path');
+      const filename = rect.getAttribute('data-filename') || 'file';
+      navigator.clipboard.writeText(path).then(() => {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Copied path for ' + filename + '!';
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+      });
+    };
+
+    const svg = document.querySelector('svg');
+    svg.addEventListener('click', (e) => {
+      copyPath(e.target.closest('rect[data-path]'));
+    });
+
+    svg.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        copyPath(e.target.closest('rect[data-path]'));
       }
     });
   </script>
@@ -240,7 +254,7 @@ function treemapDot(data: FileCoverage[]) {
   const dotHeader = `graph {
     layout=patchwork
     node [style=filled]
-    label="Overall Coverage: ${overallCoverage}% (${totalStmts} statements)"`;
+    label="Overall Coverage: ${overallCoverage}% (${totalCovered}/${totalStmts} statements)"`;
   let dotBody = "\n";
   const dotFooter = "\n}";
 
