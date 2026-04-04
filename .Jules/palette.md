@@ -17,3 +17,7 @@
 ## 2025-05-26 - [Dynamic Interaction and Screen Reader Hints]
 **Learning:** For interactive data visualizations, standard 'img' roles are insufficient if elements are clickable or focusable. Using 'role="button"' and providing explicit action hints in 'aria-label' and tooltips (e.g., "Click to copy path") makes the available interactions discoverable for all users, including those using screen readers. Additionally, including the target item's name in feedback (e.g., "Copied path for [filename]!") provides much stronger confirmation than a generic success message.
 **Action:** Always use appropriate interactive roles for focusable data elements and include explicit interaction hints and item-specific feedback for non-visual actions.
+
+## 2025-05-27 - [Accessible Filtering in SVG]
+**Learning:** When filtering elements in an interactive SVG visualization, using 'opacity' and 'pointer-events: none' is insufficient for accessibility if the elements are focusable (e.g., have 'tabindex="0"'). Hidden elements remain in the keyboard tab order, creating a confusing experience for screen reader users. Using 'display: none' on SVG group elements successfully removes them from both the visual layout and the accessibility tree/tab order.
+**Action:** Always use 'display: none' (or 'visibility: hidden') to hide focusable data elements during filtering to maintain a clean keyboard navigation path.
