@@ -98,7 +98,7 @@ function buildRects(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      svgBody += `<g>
+      svgBody += `<g class="file-group" data-filename="${item.filename}" data-path="${item.fullPath}">
         <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="button" tabindex="0" data-path="${item.fullPath}" data-filename="${item.filename}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage. Click to copy path.">
           <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered) - Click to copy path</title>
         </rect>`;
@@ -171,6 +171,8 @@ function treemapSvg(data: FileCoverage[]): string {
       .rect-label { font-size: 10px; font-weight: bold; fill: #333; }
       .rect-sublabel { font-size: 8px; fill: #333; }
       .summary-text { font-size: 10px; font-weight: bold; fill: #333; }
+      .file-group { transition: opacity 0.3s; }
+      .file-group.hidden { display: none; }
     </style>
   </defs>
   <rect x="0" y="0" width="${width}" height="${svgHeight}" fill="white" />
@@ -203,6 +205,9 @@ function treemapHtml(data: FileCoverage[]) {
     svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
     .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; }
+    .search-container { margin-top: 1rem; position: relative; }
+    #search { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
   </style>
 </head>
 <body>
@@ -210,6 +215,9 @@ function treemapHtml(data: FileCoverage[]) {
     <div class="header">
       <h1 class="title">Code Coverage Treemap</h1>
       <div class="summary">Overall Coverage: <strong>${overallCoverage}%</strong> (${totalCovered}/${totalStmts} statements)</div>
+      <div class="search-container">
+        <input type="text" id="search" placeholder="Search files... (Type / to focus)" aria-label="Search files by name or path">
+      </div>
     </div>
     ${svg}
   </div>
@@ -238,6 +246,29 @@ function treemapHtml(data: FileCoverage[]) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         copyPath(e.target.closest('rect[data-path]'));
+      }
+    });
+
+    const searchInput = document.getElementById('search');
+    const fileGroups = document.querySelectorAll('.file-group');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      fileGroups.forEach(group => {
+        const filename = group.getAttribute('data-filename').toLowerCase();
+        const path = group.getAttribute('data-path').toLowerCase();
+        if (filename.includes(query) || path.includes(query)) {
+          group.classList.remove('hidden');
+        } else {
+          group.classList.add('hidden');
+        }
+      });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInput.focus();
       }
     });
   </script>
