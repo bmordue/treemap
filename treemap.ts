@@ -208,6 +208,9 @@ function treemapHtml(data: FileCoverage[]) {
     .search-container { margin-top: 1rem; position: relative; }
     #search { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
+    #search-info { font-size: 0.75rem; color: #718096; margin-top: 0.5rem; height: 1rem; }
+    #no-results { display: none; padding: 4rem 2rem; text-align: center; color: #718096; background: #f8f9fa; border: 2px dashed #e2e8f0; border-radius: 8px; margin-top: 1rem; }
+    #no-results-title { font-size: 1.125rem; font-weight: 600; color: #4a5568; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -217,9 +220,14 @@ function treemapHtml(data: FileCoverage[]) {
       <div class="summary">Overall Coverage: <strong>${overallCoverage}%</strong> (${totalCovered}/${totalStmts} statements)</div>
       <div class="search-container">
         <input type="text" id="search" placeholder="Search files... (Type / to focus)" aria-label="Search files by name or path">
+        <div id="search-info" aria-live="polite"></div>
       </div>
     </div>
     ${svg}
+    <div id="no-results" aria-live="assertive">
+      <div id="no-results-title">No matching files found</div>
+      <div>Try adjusting your search terms to find what you're looking for.</div>
+    </div>
   </div>
   <div id="toast" class="toast">Path copied to clipboard!</div>
   <script>
@@ -250,25 +258,44 @@ function treemapHtml(data: FileCoverage[]) {
     });
 
     const searchInput = document.getElementById('search');
+    const searchInfo = document.getElementById('search-info');
+    const noResults = document.getElementById('no-results');
     const fileGroups = document.querySelectorAll('.file-group');
+    const totalFiles = fileGroups.length;
 
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
+      let visibleCount = 0;
       fileGroups.forEach(group => {
         const filename = group.getAttribute('data-filename').toLowerCase();
         const path = group.getAttribute('data-path').toLowerCase();
         if (filename.includes(query) || path.includes(query)) {
           group.classList.remove('hidden');
+          visibleCount++;
         } else {
           group.classList.add('hidden');
         }
       });
+
+      if (query) {
+        searchInfo.textContent = 'Showing ' + visibleCount + ' of ' + totalFiles + ' files';
+      } else {
+        searchInfo.textContent = '';
+      }
+
+      const hasResults = visibleCount > 0;
+      svg.style.display = hasResults ? 'block' : 'none';
+      noResults.style.display = hasResults ? 'none' : 'block';
     });
 
     window.addEventListener('keydown', (e) => {
       if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         e.preventDefault();
         searchInput.focus();
+      } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+        searchInput.blur();
       }
     });
   </script>
