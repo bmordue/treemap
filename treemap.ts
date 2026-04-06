@@ -326,7 +326,11 @@ function treemapDot(data: FileCoverage[]) {
   const dotFooter = "\n}";
 
   if (data.length === 0) {
-    return dotHeader + '\n    "No coverage data found" [shape=none]\n' + dotFooter;
+    return (
+      dotHeader +
+      '\n"No Coverage Data Found" [shape=none]\n' +
+      dotFooter
+    );
   }
 
   data.forEach((item) => {
