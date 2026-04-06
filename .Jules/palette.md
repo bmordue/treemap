@@ -21,3 +21,7 @@
 ## 2025-05-27 - [Accessible Filtering in SVG]
 **Learning:** When filtering elements in an interactive SVG visualization, using 'opacity' and 'pointer-events: none' is insufficient for accessibility if the elements are focusable (e.g., have 'tabindex="0"'). Hidden elements remain in the keyboard tab order, creating a confusing experience for screen reader users. Using 'display: none' on SVG group elements successfully removes them from both the visual layout and the accessibility tree/tab order.
 **Action:** Always use 'display: none' (or 'visibility: hidden') to hide focusable data elements during filtering to maintain a clean keyboard navigation path.
+
+## 2025-05-28 - [Search Feedback and Empty States]
+**Learning:** Real-time filtering without quantitative feedback can leave users uncertain about the scope of the results, especially in large datasets. Providing a simple "Showing X of Y" message and a dedicated "No results found" empty state makes the search interaction feel much more robust and responsive.
+**Action:** Always pair real-time filtering with a results count and a clear empty state to guide the user when no matches are found.
