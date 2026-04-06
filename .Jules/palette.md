@@ -10,6 +10,10 @@
 **Learning:** Detailed visualizations like treemaps benefit from high-level summary badges (e.g., "Overall Coverage") to provide immediate context without user exploration. Additionally, standalone SVG exports need explicit background elements (e.g., a white `<rect>`) to ensure text legibility across varying system themes (light/dark mode).
 **Action:** Include summary metrics in all visualization export formats and always provide a theme-independent background for standalone image outputs.
 
+## 2025-05-24 - [Graceful Empty States]
+**Learning:** Visualizations like treemaps should have a clear, accessible empty state to provide feedback when no data is available, rather than crashing or showing a blank screen. This improves the developer experience and makes the tool more robust.
+**Action:** Implement graceful empty state handling with helpful instructions and CLI warnings whenever a visualization might receive an empty dataset.
+
 ## 2025-05-25 - [Interactive Data Elements and Feedback]
 **Learning:** Adding interactivity to data visualizations—such as the ability to copy file paths by clicking on treemap cells—transforms a static report into a functional developer tool. However, interactivity without feedback is confusing; using the Clipboard API must be paired with clear visual confirmation (e.g., a transient toast notification) to reassure the user that their action was successful.
 **Action:** When implementing non-visual actions (like copy-to-clipboard) on UI elements, always provide immediate and accessible visual feedback to confirm the state change.

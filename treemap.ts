@@ -57,15 +57,12 @@ function buildRects(
 ): string {
   const coverageThreshold = 0.8;
 
-  const totalStmts = data
-    .map((d) => d.statementCount)
-    .reduce((a, b) => a + b, 0);
+  const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
+  console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
   if (totalStmts === 0) {
     return "";
   }
-
-  console.log(`Found ${totalStmts} statements in ${data.length} files.`);
 
   let svgBody = "";
   let remainingHeight = height;
@@ -143,6 +140,14 @@ function treemapSvg(data: FileCoverage[]): string {
   const coverageRatio = totalStmts > 0 ? totalCovered / totalStmts : 0;
   const overallCoverage = Math.round(coverageRatio * 100);
   const summaryColor = coverageRatio > coverageThreshold ? "#009e73" : "#d55e00";
+
+  if (data.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap - No data">
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#f9f9f9" stroke="#ccc" rx="8" />
+  <text x="${width / 2}" y="${height / 2 - 10}" font-family="sans-serif" font-size="14" font-weight="bold" fill="#666" text-anchor="middle">No Coverage Data Found</text>
+  <text x="${width / 2}" y="${height / 2 + 15}" font-family="sans-serif" font-size="10" fill="#999" text-anchor="middle">Ensure your coverage JSON is correctly formatted and not empty.</text>
+</svg>`;
+  }
 
   const rects = buildRects(data, width, height);
 
@@ -347,13 +352,18 @@ function main() {
   const inputFilename = process.argv[2] || "coverage-final.json";
   let outputFilename = process.argv[3] || "output.html";
   const inputData = JSON.parse(readFileSync(inputFilename).toString());
+  const filteredData = filter(inputData);
+
+  if (filteredData.length === 0) {
+    console.warn("Warning: No coverage data found in input file.");
+  }
 
   if (outputFilename.toLowerCase().endsWith(".html")) {
-    writeFileSync(outputFilename, treemapHtml(filter(inputData)));
+    writeFileSync(outputFilename, treemapHtml(filteredData));
   } else if (outputFilename.toLowerCase().endsWith(".svg")) {
-    writeFileSync(outputFilename, treemapSvg(filter(inputData)));
+    writeFileSync(outputFilename, treemapSvg(filteredData));
   } else {
-    writeFileSync(outputFilename, treemapDot(filter(inputData)));
+    writeFileSync(outputFilename, treemapDot(filteredData));
   }
 }
 
