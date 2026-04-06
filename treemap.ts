@@ -2,12 +2,21 @@
 import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 
-function filter(data: any) {
-  let files = [];
+interface FileCoverage {
+  filename: string;
+  fullPath: string;
+  statementCount: number;
+  coveredStatementCount: number;
+  statementCoverage: number;
+}
+
+function filter(data: any): FileCoverage[] {
+  let files: FileCoverage[] = [];
   for (const prop in data) {
     const item = data[prop];
     if (item.path) {
       const filename = path.basename(item.path.replace(/\\/g, "/"));
+      const fullPath = item.path;
       let stmtCount = 0;
       let coveredStmtCount = 0;
       for (const entry in item.s) {
@@ -18,7 +27,9 @@ function filter(data: any) {
       const coverage = coveredStmtCount / stmtCount;
       files.push({
         filename,
+        fullPath,
         statementCount: stmtCount,
+        coveredStatementCount: coveredStmtCount,
         statementCoverage: coverage,
       });
     }
@@ -40,11 +51,7 @@ function filter(data: any) {
 // </svg>
 
 function buildRects(
-  data: {
-    filename: string;
-    statementCount: number;
-    statementCoverage: number;
-  }[],
+  data: FileCoverage[],
   width: number,
   height: number
 ): string {
@@ -52,6 +59,10 @@ function buildRects(
 
   const totalStmts = data.map((d) => d.statementCount).reduce((a, b) => a + b, 0);
   console.log(`Found ${totalStmts} statements in ${data.length} files.`);
+
+  if (totalStmts === 0) {
+    return "";
+  }
 
   let svgBody = "";
   let remainingHeight = height;
@@ -84,9 +95,9 @@ function buildRects(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      svgBody += `<g>
-        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="img" tabindex="0" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage">
-          <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered)</title>
+      svgBody += `<g class="file-group" data-filename="${item.filename}" data-path="${item.fullPath}">
+        <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="button" tabindex="0" data-path="${item.fullPath}" data-filename="${item.filename}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage. Click to copy path.">
+          <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered) - Click to copy path</title>
         </rect>`;
 
       if (rectWidth > 60 && rectHeight > 40) {
@@ -116,17 +127,19 @@ function buildRects(
   return svgBody;
 }
 
-function treemapSvg(
-  data: {
-    filename: string;
-    statementCount: number;
-    statementCoverage: number;
-  }[]
-): string {
+function treemapSvg(data: FileCoverage[]): string {
   const width = 400;
   const height = 200;
   const legendY = height + 20;
-  const svgHeight = height + 50;
+  const summaryY = height + 60;
+  const svgHeight = height + 75;
+
+  const coverageThreshold = 0.8;
+  const totalStmts = data.reduce((acc, d) => acc + d.statementCount, 0);
+  const totalCovered = data.reduce((acc, d) => acc + d.coveredStatementCount, 0);
+  const coverageRatio = totalStmts > 0 ? totalCovered / totalStmts : 0;
+  const overallCoverage = Math.round(coverageRatio * 100);
+  const summaryColor = coverageRatio > coverageThreshold ? "#009e73" : "#d55e00";
 
   if (data.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap - No data">
@@ -138,8 +151,25 @@ function treemapSvg(
 
   const rects = buildRects(data, width, height);
 
+  if (!rects) {
+    console.warn("No coverage data found to visualize.");
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap - No Data Found">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="${width}" height="${height}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" rx="4" />
+  <text x="${width / 2}" y="${height / 2}" dominant-baseline="middle" text-anchor="middle" fill="#6c757d" font-size="14">No Coverage Data Found</text>
+</svg>`;
+  }
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="Treemap">
   <defs>
+    <linearGradient id="low-cov-gradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d55e00" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#d55e00" stop-opacity="1" />
+    </linearGradient>
     <style>
       rect { transition: filter 0.2s, transform 0.2s, outline 0.2s; outline: none; cursor: pointer; transform-origin: center; transform-box: fill-box; }
       rect:hover, rect:focus-visible { filter: brightness(1.1); transform: scale(1.02); outline: 2px solid #333; outline-offset: 1px; }
@@ -148,62 +178,150 @@ function treemapSvg(
       .legend-note { font-size: 7px; fill: #666; }
       .rect-label { font-size: 10px; font-weight: bold; fill: #333; }
       .rect-sublabel { font-size: 8px; fill: #333; }
+      .summary-text { font-size: 10px; font-weight: bold; fill: #333; }
+      .file-group { transition: opacity 0.3s; }
+      .file-group.hidden { display: none; }
     </style>
   </defs>
+  <rect x="0" y="0" width="${width}" height="${svgHeight}" fill="white" />
   <g>${rects}</g>
   <g aria-label="Legend">
     <rect x="0" y="${legendY}" width="12" height="12" fill="#009e73" opacity="0.5" rx="2"/>
     <text x="16" y="${legendY + 10}" class="legend-label">High Coverage (&gt;80%)</text>
-    <rect x="120" y="${legendY}" width="12" height="12" fill="#d55e00" opacity="0.5" rx="2"/>
+    <rect x="120" y="${legendY}" width="12" height="12" fill="url(#low-cov-gradient)" rx="2"/>
     <text x="136" y="${legendY + 10}" class="legend-label">Low Coverage (&le;80%)</text>
-    <text x="0" y="${legendY + 25}" class="legend-note">* For low coverage, higher opacity indicates lower percentage.</text>
+    <text x="245" y="${legendY + 10}" class="legend-note">* Higher opacity = lower percentage.</text>
+    <text x="0" y="${summaryY}" class="summary-text">Overall Coverage: <tspan fill="${summaryColor}">${overallCoverage}%</tspan> (${totalCovered}/${totalStmts} statements)</text>
   </g>
 </svg>`;
 }
 
-function treemapHtml(
-  data: {
-    filename: string;
-    statementCount: number;
-    statementCoverage: number;
-  }[]
-) {
-  const width = 400;
-  const height = 200;
+function treemapHtml(data: FileCoverage[]) {
   const svg = treemapSvg(data);
+  const coverageThreshold = 0.8;
+  const totalStmts = data.reduce((acc, d) => acc + d.statementCount, 0);
+  const totalCovered = data.reduce((acc, d) => acc + d.coveredStatementCount, 0);
+  const coverageRatio = totalStmts > 0 ? totalCovered / totalStmts : 0;
+  const overallCoverage = Math.round(coverageRatio * 100);
+  const summaryColor = coverageRatio > coverageThreshold ? "#009e73" : "#d55e00";
 
   return `<html>
 <head>
   <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    .treemap-container { max-width: 800px; margin: 0 auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    svg { width: 100%; height: auto; display: block; }
-    rect:focus-visible { outline: 3px solid #333; outline-offset: 1px; }
-    .legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; font-size: 0.9rem; }
-    .legend-row { display: flex; gap: 1rem; }
-    .legend-item { display: flex; align-items: center; gap: 0.5rem; }
-    .legend-color { width: 1rem; height: 1rem; border-radius: 2px; }
-    .legend-note { font-size: 0.75rem; color: #666; font-style: italic; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2rem; background: #f8f9fa; }
+    .treemap-container { max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .header { margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+    .title { font-size: 1.5rem; font-weight: bold; color: #1a202c; margin: 0; }
+    .summary { font-size: 1rem; color: #4a5568; margin-top: 0.5rem; }
+    .summary-pct { font-weight: bold; color: ${summaryColor}; }
+    svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
+    .toast.show { opacity: 1; }
+    .search-container { margin-top: 1rem; position: relative; }
+    #search { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
+    .search-info { font-size: 0.75rem; color: #718096; margin-top: 0.4rem; min-height: 1.2em; }
+    #no-results { display: none; padding: 3rem; text-align: center; color: #718096; background: #fdfdfd; border: 2px dashed #edf2f7; border-radius: 8px; margin-top: 1rem; }
   </style>
 </head>
 <body>
   <div class="treemap-container">
+    <div class="header">
+      <h1 class="title">Code Coverage Treemap</h1>
+      <div class="summary">Overall Coverage: <strong class="summary-pct">${overallCoverage}%</strong> (${totalCovered}/${totalStmts} statements)</div>
+      <div class="search-container">
+        <input type="text" id="search" placeholder="Search files... (Type / to focus)" aria-label="Search files by name or path">
+        <div id="search-info" class="search-info"></div>
+      </div>
+    </div>
+    <div id="no-results">No matching files found.</div>
     ${svg}
   </div>
+  <div id="toast" class="toast">Path copied to clipboard!</div>
+  <script>
+    let toastTimeout;
+    const copyPath = (rect) => {
+      if (!rect) return;
+      const path = rect.getAttribute('data-path');
+      const filename = rect.getAttribute('data-filename') || 'file';
+      navigator.clipboard.writeText(path).then(() => {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Copied path for ' + filename + '!';
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+      });
+    };
+
+    const svg = document.querySelector('svg');
+    svg.addEventListener('click', (e) => {
+      copyPath(e.target.closest('rect[data-path]'));
+    });
+
+    svg.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        copyPath(e.target.closest('rect[data-path]'));
+      }
+    });
+
+    const searchInput = document.getElementById('search');
+    const searchInfo = document.getElementById('search-info');
+    const noResults = document.getElementById('no-results');
+    const fileGroups = document.querySelectorAll('.file-group');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      let visibleCount = 0;
+      fileGroups.forEach(group => {
+        const filename = group.getAttribute('data-filename').toLowerCase();
+        const path = group.getAttribute('data-path').toLowerCase();
+        if (filename.includes(query) || path.includes(query)) {
+          group.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          group.classList.add('hidden');
+        }
+      });
+
+      if (query) {
+        searchInfo.textContent = 'Showing ' + visibleCount + ' of ' + fileGroups.length + ' files';
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        svg.style.display = visibleCount === 0 ? 'none' : 'block';
+      } else {
+        searchInfo.textContent = '';
+        noResults.style.display = 'none';
+        svg.style.display = 'block';
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInput.focus();
+      } else if (e.key === 'Escape') {
+        if (document.activeElement === searchInput) {
+          searchInput.value = '';
+          searchInput.dispatchEvent(new Event('input'));
+          searchInput.blur();
+        }
+      }
+    });
+  </script>
 </body>
 </html>`;
 }
 
 // graphviz dot file output, using the "patchwork" layout
-function treemapDot(
-  data: {
-    filename: string;
-    statementCount: number;
-    statementCoverage: number;
-  }[]
-) {
+function treemapDot(data: FileCoverage[]) {
   const coverageThreshold = 0.8;
-  const dotHeader = "graph {\n    layout=patchwork\n    node [style=filled]";
+  const totalStmts = data.reduce((acc, d) => acc + d.statementCount, 0);
+  const totalCovered = data.reduce((acc, d) => acc + d.coveredStatementCount, 0);
+  const overallCoverage = totalStmts > 0 ? Math.round((totalCovered / totalStmts) * 100) : 0;
+  const dotHeader = `graph {
+    layout=patchwork
+    node [style=filled]
+    label="Overall Coverage: ${overallCoverage}% (${totalCovered}/${totalStmts} statements)"`;
   let dotBody = "\n";
   const dotFooter = "\n}";
 
