@@ -95,7 +95,7 @@ function buildRects(
           ? 0.5
           : 1 - item.statementCoverage;
       const roundedCoverage = Math.round(item.statementCoverage * 100);
-      svgBody += `<g class="file-group" data-filename="${item.filename}" data-path="${item.fullPath}">
+      svgBody += `<g class="file-group" data-filename="${item.filename}" data-path="${item.fullPath}" data-statements="${item.statementCount}" data-covered="${item.coveredStatementCount}">
         <rect x="${currX}" y="${currY}" width="${rectWidth}" height="${rectHeight}" fill="${colour}" stroke="white" stroke-width="2" rx="4" opacity="${opacity}" role="button" tabindex="0" data-path="${item.fullPath}" data-filename="${item.filename}" aria-label="${item.filename}: ${item.statementCount} statements, ${roundedCoverage}% coverage. Click to copy path.">
           <title>${item.filename}: ${item.statementCount} statements (${roundedCoverage}% covered) - Click to copy path</title>
         </rect>`;
@@ -191,7 +191,7 @@ function treemapSvg(data: FileCoverage[]): string {
     <rect x="120" y="${legendY}" width="12" height="12" fill="url(#low-cov-gradient)" rx="2"/>
     <text x="136" y="${legendY + 10}" class="legend-label">Low Coverage (&le;80%)</text>
     <text x="245" y="${legendY + 10}" class="legend-note">* Higher opacity = lower percentage.</text>
-    <text x="0" y="${summaryY}" class="summary-text">Overall Coverage: <tspan fill="${summaryColor}">${overallCoverage}%</tspan> (${totalCovered}/${totalStmts} statements)</text>
+    <text x="0" y="${summaryY}" class="summary-text">Overall Coverage: <tspan id="svg-summary-pct" fill="${summaryColor}">${overallCoverage}%</tspan> <tspan id="svg-summary-counts">(${totalCovered}/${totalStmts} statements)</tspan></text>
   </g>
 </svg>`;
 }
@@ -228,10 +228,10 @@ function treemapHtml(data: FileCoverage[]) {
   <div class="treemap-container">
     <div class="header">
       <h1 class="title">Code Coverage Treemap</h1>
-      <div class="summary">Overall Coverage: <strong class="summary-pct">${overallCoverage}%</strong> (${totalCovered}/${totalStmts} statements)</div>
+      <div class="summary">Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></div>
       <div class="search-container">
         <input type="text" id="search" placeholder="Search files... (Type / to focus)" aria-label="Search files by name or path">
-        <div id="search-info" class="search-info"></div>
+        <div id="search-info" class="search-info" aria-live="polite"></div>
       </div>
     </div>
     <div id="no-results">No matching files found.</div>
@@ -273,16 +273,42 @@ function treemapHtml(data: FileCoverage[]) {
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
       let visibleCount = 0;
+      let totalVisibleStmts = 0;
+      let totalVisibleCovered = 0;
+
       fileGroups.forEach(group => {
         const filename = group.getAttribute('data-filename').toLowerCase();
         const path = group.getAttribute('data-path').toLowerCase();
+        const statements = parseInt(group.getAttribute('data-statements') || '0', 10);
+        const covered = parseInt(group.getAttribute('data-covered') || '0', 10);
+
         if (filename.includes(query) || path.includes(query)) {
           group.classList.remove('hidden');
           visibleCount++;
+          totalVisibleStmts += statements;
+          totalVisibleCovered += covered;
         } else {
           group.classList.add('hidden');
         }
       });
+
+      const coverageRatio = totalVisibleStmts > 0 ? totalVisibleCovered / totalVisibleStmts : 0;
+      const coveragePct = Math.round(coverageRatio * 100);
+      const color = coverageRatio > 0.8 ? '#009e73' : '#d55e00';
+
+      const updateSummary = (pctId, countId) => {
+        const pctEl = document.getElementById(pctId);
+        const countEl = document.getElementById(countId);
+        if (pctEl) {
+          pctEl.textContent = coveragePct + '%';
+          pctEl.style.color = color;
+          if (pctEl.tagName.toLowerCase() === 'tspan') pctEl.setAttribute('fill', color);
+        }
+        if (countEl) countEl.textContent = '(' + totalVisibleCovered + '/' + totalVisibleStmts + ' statements)';
+      };
+
+      updateSummary('html-summary-pct', 'html-summary-counts');
+      updateSummary('svg-summary-pct', 'svg-summary-counts');
 
       if (query) {
         searchInfo.textContent = 'Showing ' + visibleCount + ' of ' + fileGroups.length + ' files';
