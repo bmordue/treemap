@@ -212,14 +212,18 @@ function treemapHtml(data: FileCoverage[]) {
     .treemap-container { max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     .header { margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
     .title { font-size: 1.5rem; font-weight: bold; color: #1a202c; margin: 0; }
-    .summary { font-size: 1rem; color: #4a5568; margin-top: 0.5rem; }
+    .summary { font-size: 1rem; color: #4a5568; margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .summary-pct { font-weight: bold; color: ${summaryColor}; }
+    .progress-bar { flex: 1; min-width: 200px; height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; }
+    .progress-inner { height: 100%; width: ${overallCoverage}%; background: ${summaryColor}; transition: width 0.3s ease, background-color 0.3s ease; }
     svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
     .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; }
-    .search-container { margin-top: 1rem; position: relative; }
-    #search { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .search-container { margin-top: 1rem; position: relative; display: flex; align-items: center; }
+    #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
+    .search-hint { position: absolute; right: 0.75rem; pointer-events: none; }
+    kbd { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: #a0aec0; font-family: inherit; }
     .search-info { font-size: 0.75rem; color: #718096; margin-top: 0.4rem; min-height: 1.2em; }
     #no-results { display: none; padding: 3rem; text-align: center; color: #718096; background: #fdfdfd; border: 2px dashed #edf2f7; border-radius: 8px; margin-top: 1rem; }
   </style>
@@ -228,11 +232,15 @@ function treemapHtml(data: FileCoverage[]) {
   <div class="treemap-container">
     <div class="header">
       <h1 class="title">Code Coverage Treemap</h1>
-      <div class="summary">Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></div>
-      <div class="search-container">
-        <input type="text" id="search" placeholder="Search files... (Type / to focus)" aria-label="Search files by name or path">
-        <div id="search-info" class="search-info" aria-live="polite"></div>
+      <div class="summary">
+        <span>Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></span>
+        <div class="progress-bar" aria-hidden="true"><div id="html-progress-inner" class="progress-inner"></div></div>
       </div>
+      <div class="search-container">
+        <input type="search" id="search" placeholder="Search files..." aria-label="Search files by name or path">
+        <div class="search-hint"><kbd>/</kbd></div>
+      </div>
+      <div id="search-info" class="search-info" aria-live="polite"></div>
     </div>
     <div id="no-results">No matching files found.</div>
     ${svg}
@@ -296,19 +304,24 @@ function treemapHtml(data: FileCoverage[]) {
       const coveragePct = Math.round(coverageRatio * 100);
       const color = coverageRatio > 0.8 ? '#009e73' : '#d55e00';
 
-      const updateSummary = (pctId, countId) => {
+      const updateSummary = (pctId, countId, progressId) => {
         const pctEl = document.getElementById(pctId);
         const countEl = document.getElementById(countId);
+        const progressEl = document.getElementById(progressId);
         if (pctEl) {
           pctEl.textContent = coveragePct + '%';
           pctEl.style.color = color;
           if (pctEl.tagName.toLowerCase() === 'tspan') pctEl.setAttribute('fill', color);
         }
         if (countEl) countEl.textContent = '(' + totalVisibleCovered + '/' + totalVisibleStmts + ' statements)';
+        if (progressEl) {
+          progressEl.style.width = coveragePct + '%';
+          progressEl.style.backgroundColor = color;
+        }
       };
 
-      updateSummary('html-summary-pct', 'html-summary-counts');
-      updateSummary('svg-summary-pct', 'svg-summary-counts');
+      updateSummary('html-summary-pct', 'html-summary-counts', 'html-progress-inner');
+      updateSummary('svg-summary-pct', 'svg-summary-counts', null);
 
       if (query) {
         searchInfo.textContent = 'Showing ' + visibleCount + ' of ' + fileGroups.length + ' files';

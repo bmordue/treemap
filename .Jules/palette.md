@@ -29,3 +29,7 @@
 ## 2025-05-28 - [Search Feedback and Empty States]
 **Learning:** Real-time filtering without quantitative feedback can leave users uncertain about the scope of the results, especially in large datasets. Providing a simple "Showing X of Y" message and a dedicated "No results found" empty state makes the search interaction feel much more robust and responsive.
 **Action:** Always pair real-time filtering with a results count and a clear empty state to guide the user when no matches are found.
+
+## 2025-05-29 - [Visual Progress and Discoverability]
+**Learning:** High-level metrics like "Overall Coverage" are more impactful when paired with a visual progress bar that provides instant, pre-attentive feedback. Furthermore, advanced features like keyboard shortcuts (e.g., '/') significantly improve power-user efficiency but are often undiscoverable without explicit visual hints like `<kbd>` tags.
+**Action:** Always pair summary percentages with visual progress indicators and use explicit keyboard hint elements to make shortcuts discoverable.
