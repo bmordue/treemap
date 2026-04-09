@@ -219,10 +219,15 @@ function treemapHtml(data: FileCoverage[]) {
     svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
     .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; }
-    .search-container { margin-top: 1rem; position: relative; display: flex; align-items: center; }
+    .filter-container { margin-top: 1rem; display: flex; gap: 0.5rem; }
+    .filter-btn { padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px; background: white; font-size: 0.75rem; color: #4a5568; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover { background: #f7fafc; border-color: #cbd5e0; }
+    .filter-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
+    .search-container { margin-top: 0.75rem; position: relative; display: flex; align-items: center; }
     #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
-    .search-hint { position: absolute; right: 0.75rem; pointer-events: none; }
+    #search:focus + .search-hint { opacity: 0; visibility: hidden; }
+    .search-hint { position: absolute; right: 0.75rem; pointer-events: none; transition: opacity 0.2s, visibility 0.2s; }
     kbd { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: #a0aec0; font-family: inherit; }
     .search-info { font-size: 0.75rem; color: #718096; margin-top: 0.4rem; min-height: 1.2em; }
     #no-results { display: none; padding: 3rem; text-align: center; color: #718096; background: #fdfdfd; border: 2px dashed #edf2f7; border-radius: 8px; margin-top: 1rem; }
@@ -235,6 +240,11 @@ function treemapHtml(data: FileCoverage[]) {
       <div class="summary">
         <span>Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></span>
         <div class="progress-bar" aria-hidden="true"><div id="html-progress-inner" class="progress-inner"></div></div>
+      </div>
+      <div class="filter-container" role="tablist" aria-label="Filter by coverage">
+        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All Files</button>
+        <button class="filter-btn" data-filter="high" role="tab" aria-selected="false">High Coverage (>80%)</button>
+        <button class="filter-btn" data-filter="low" role="tab" aria-selected="false">Low Coverage (≤80%)</button>
       </div>
       <div class="search-container">
         <input type="search" id="search" placeholder="Search files..." aria-label="Search files by name or path">
@@ -277,9 +287,11 @@ function treemapHtml(data: FileCoverage[]) {
     const searchInfo = document.getElementById('search-info');
     const noResults = document.getElementById('no-results');
     const fileGroups = document.querySelectorAll('.file-group');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    let activeFilter = 'all';
 
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase();
+    const performFilter = () => {
+      const query = searchInput.value.toLowerCase();
       let visibleCount = 0;
       let totalVisibleStmts = 0;
       let totalVisibleCovered = 0;
@@ -289,8 +301,14 @@ function treemapHtml(data: FileCoverage[]) {
         const path = group.getAttribute('data-path').toLowerCase();
         const statements = parseInt(group.getAttribute('data-statements') || '0', 10);
         const covered = parseInt(group.getAttribute('data-covered') || '0', 10);
+        const ratio = statements > 0 ? covered / statements : 0;
 
-        if (filename.includes(query) || path.includes(query)) {
+        const matchesSearch = filename.includes(query) || path.includes(query);
+        let matchesFilter = true;
+        if (activeFilter === 'high') matchesFilter = ratio > 0.8;
+        else if (activeFilter === 'low') matchesFilter = ratio <= 0.8;
+
+        if (matchesSearch && matchesFilter) {
           group.classList.remove('hidden');
           visibleCount++;
           totalVisibleStmts += statements;
@@ -323,7 +341,7 @@ function treemapHtml(data: FileCoverage[]) {
       updateSummary('html-summary-pct', 'html-summary-counts', 'html-progress-inner');
       updateSummary('svg-summary-pct', 'svg-summary-counts', null);
 
-      if (query) {
+      if (query || activeFilter !== 'all') {
         searchInfo.textContent = 'Showing ' + visibleCount + ' of ' + fileGroups.length + ' files';
         noResults.style.display = visibleCount === 0 ? 'block' : 'none';
         svg.style.display = visibleCount === 0 ? 'none' : 'block';
@@ -332,6 +350,21 @@ function treemapHtml(data: FileCoverage[]) {
         noResults.style.display = 'none';
         svg.style.display = 'block';
       }
+    };
+
+    searchInput.addEventListener('input', performFilter);
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        activeFilter = btn.getAttribute('data-filter');
+        performFilter();
+      });
     });
 
     window.addEventListener('keydown', (e) => {

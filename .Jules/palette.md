@@ -33,3 +33,7 @@
 ## 2025-05-29 - [Visual Progress and Discoverability]
 **Learning:** High-level metrics like "Overall Coverage" are more impactful when paired with a visual progress bar that provides instant, pre-attentive feedback. Furthermore, advanced features like keyboard shortcuts (e.g., '/') significantly improve power-user efficiency but are often undiscoverable without explicit visual hints like `<kbd>` tags.
 **Action:** Always pair summary percentages with visual progress indicators and use explicit keyboard hint elements to make shortcuts discoverable.
+
+## 2025-04-09 - [Unified Real-time Filtering and Summary Updates]
+**Learning:** In data-driven interfaces, filtering interactions are most effective when they provide immediate quantitative feedback. By unifying text search and status-based filtering (e.g., coverage thresholds) into a single logical pass and dynamically recalculating overall statistics (percentages and counts), the interface provides a much more responsive and trustworthy experience. Furthermore, using CSS sibling selectors and transitions for search hint discovery/hiding reduces visual noise without sacrificing learnability.
+**Action:** Always pair status filtering with real-time recalculation of summary metrics and use non-disruptive, animated hints for keyboard shortcuts.
