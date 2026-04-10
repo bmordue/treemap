@@ -37,3 +37,7 @@
 ## 2025-04-09 - [Unified Real-time Filtering and Summary Updates]
 **Learning:** In data-driven interfaces, filtering interactions are most effective when they provide immediate quantitative feedback. By unifying text search and status-based filtering (e.g., coverage thresholds) into a single logical pass and dynamically recalculating overall statistics (percentages and counts), the interface provides a much more responsive and trustworthy experience. Furthermore, using CSS sibling selectors and transitions for search hint discovery/hiding reduces visual noise without sacrificing learnability.
 **Action:** Always pair status filtering with real-time recalculation of summary metrics and use non-disruptive, animated hints for keyboard shortcuts.
+
+## 2025-06-01 - [Keyboard Navigation for Tablists]
+**Learning:** Implementing 'role="tablist"' requires more than just ARIA roles; it necessitates manual management of the "roving tabindex" pattern. Using arrow keys to move focus and select tabs, while keeping only the active tab in the tab order (tabindex="0" vs tabindex="-1"), creates a standard and expected experience for screen reader and keyboard-only users.
+**Action:** When using 'role="tablist"', always implement the roving tabindex pattern with arrow key support to ensure accessibility compliance.
