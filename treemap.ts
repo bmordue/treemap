@@ -204,6 +204,8 @@ function treemapHtml(data: FileCoverage[]) {
   const coverageRatio = totalStmts > 0 ? totalCovered / totalStmts : 0;
   const overallCoverage = Math.round(coverageRatio * 100);
   const summaryColor = coverageRatio > coverageThreshold ? "#009e73" : "#d55e00";
+  const highCount = data.filter(d => d.statementCoverage > coverageThreshold).length;
+  const lowCount = data.filter(d => d.statementCoverage <= coverageThreshold).length;
 
   return `<html>
 <head>
@@ -222,6 +224,7 @@ function treemapHtml(data: FileCoverage[]) {
     .filter-container { margin-top: 1rem; display: flex; gap: 0.5rem; }
     .filter-btn { padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px; background: white; font-size: 0.75rem; color: #4a5568; cursor: pointer; transition: all 0.2s; }
     .filter-btn:hover { background: #f7fafc; border-color: #cbd5e0; }
+    .filter-btn:focus-visible { outline: 2px solid #3182ce; outline-offset: 2px; }
     .filter-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
     .search-container { margin-top: 0.75rem; position: relative; display: flex; align-items: center; }
     #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -242,9 +245,9 @@ function treemapHtml(data: FileCoverage[]) {
         <div class="progress-bar" aria-hidden="true"><div id="html-progress-inner" class="progress-inner"></div></div>
       </div>
       <div class="filter-container" role="tablist" aria-label="Filter by coverage">
-        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All Files</button>
-        <button class="filter-btn" data-filter="high" role="tab" aria-selected="false">High Coverage (>80%)</button>
-        <button class="filter-btn" data-filter="low" role="tab" aria-selected="false">Low Coverage (≤80%)</button>
+        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true" tabindex="0">All Files (${data.length})</button>
+        <button class="filter-btn" data-filter="high" role="tab" aria-selected="false" tabindex="-1">High Coverage (${highCount})</button>
+        <button class="filter-btn" data-filter="low" role="tab" aria-selected="false" tabindex="-1">Low Coverage (${lowCount})</button>
       </div>
       <div class="search-container">
         <input type="search" id="search" placeholder="Search files..." aria-label="Search files by name or path">
@@ -305,8 +308,8 @@ function treemapHtml(data: FileCoverage[]) {
 
         const matchesSearch = filename.includes(query) || path.includes(query);
         let matchesFilter = true;
-        if (activeFilter === 'high') matchesFilter = ratio > 0.8;
-        else if (activeFilter === 'low') matchesFilter = ratio <= 0.8;
+        if (activeFilter === 'high') matchesFilter = ratio > ${coverageThreshold};
+        else if (activeFilter === 'low') matchesFilter = ratio <= ${coverageThreshold};
 
         if (matchesSearch && matchesFilter) {
           group.classList.remove('hidden');
@@ -320,7 +323,7 @@ function treemapHtml(data: FileCoverage[]) {
 
       const coverageRatio = totalVisibleStmts > 0 ? totalVisibleCovered / totalVisibleStmts : 0;
       const coveragePct = Math.round(coverageRatio * 100);
-      const color = coverageRatio > 0.8 ? '#009e73' : '#d55e00';
+      const color = coverageRatio > ${coverageThreshold} ? '#009e73' : '#d55e00';
 
       const updateSummary = (pctId, countId, progressId) => {
         const pctEl = document.getElementById(pctId);
@@ -354,16 +357,37 @@ function treemapHtml(data: FileCoverage[]) {
 
     searchInput.addEventListener('input', performFilter);
 
-    filterBtns.forEach(btn => {
+    filterBtns.forEach((btn, index) => {
       btn.addEventListener('click', () => {
         filterBtns.forEach(b => {
           b.classList.remove('active');
           b.setAttribute('aria-selected', 'false');
+          b.setAttribute('tabindex', '-1');
         });
         btn.classList.add('active');
         btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('tabindex', '0');
         activeFilter = btn.getAttribute('data-filter');
         performFilter();
+      });
+
+      btn.addEventListener('keydown', (e) => {
+        let nextIndex;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          nextIndex = (index + 1) % filterBtns.length;
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          nextIndex = (index - 1 + filterBtns.length) % filterBtns.length;
+        } else if (e.key === 'Home') {
+          nextIndex = 0;
+        } else if (e.key === 'End') {
+          nextIndex = filterBtns.length - 1;
+        }
+
+        if (nextIndex !== undefined) {
+          e.preventDefault();
+          filterBtns[nextIndex].focus();
+          filterBtns[nextIndex].click();
+        }
       });
     });
 
