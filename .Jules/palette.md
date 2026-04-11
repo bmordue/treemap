@@ -41,3 +41,7 @@
 ## 2025-06-01 - [Keyboard Navigation for Tablists]
 **Learning:** Implementing 'role="tablist"' requires more than just ARIA roles; it necessitates manual management of the "roving tabindex" pattern. Using arrow keys to move focus and select tabs, while keeping only the active tab in the tab order (tabindex="0" vs tabindex="-1"), creates a standard and expected experience for screen reader and keyboard-only users.
 **Action:** When using 'role="tablist"', always implement the roving tabindex pattern with arrow key support to ensure accessibility compliance.
+
+## 2025-06-02 - [Tactile and Interactive Utility Hints]
+**Learning:** Micro-interactions like tactile feedback (e.g., scale(0.98) on :active) provide immediate confirmation of a click, making digital interfaces feel more physical and responsive. Furthermore, making keyboard shortcut hints (like '/') interactive—rather than just decorative—bridges the gap between power users and casual mouse users, reinforcing the feature's discoverability.
+**Action:** Always include tactile feedback states for interactive elements and ensure visual hints for shortcuts are themselves functional.
