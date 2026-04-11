@@ -173,6 +173,7 @@ function treemapSvg(data: FileCoverage[]): string {
     <style>
       rect { transition: filter 0.2s, transform 0.2s, outline 0.2s; outline: none; cursor: pointer; transform-origin: center; transform-box: fill-box; }
       rect:hover, rect:focus-visible { filter: brightness(1.1); transform: scale(1.02); outline: 2px solid #333; outline-offset: 1px; }
+      rect:active { transform: scale(0.98); }
       text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
       .legend-label { font-size: 9px; }
       .legend-note { font-size: 7px; fill: #666; }
@@ -230,8 +231,8 @@ function treemapHtml(data: FileCoverage[]) {
     #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
     #search:focus + .search-hint { opacity: 0; visibility: hidden; }
-    .search-hint { position: absolute; right: 0.75rem; pointer-events: none; transition: opacity 0.2s, visibility 0.2s; }
-    kbd { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: #a0aec0; font-family: inherit; }
+    .search-hint { position: absolute; right: 0.75rem; cursor: pointer; transition: opacity 0.2s, visibility 0.2s; }
+    kbd { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: #a0aec0; font-family: inherit; cursor: pointer; }
     .search-info { font-size: 0.75rem; color: #718096; margin-top: 0.4rem; min-height: 1.2em; }
     #no-results { display: none; padding: 3rem; text-align: center; color: #718096; background: #fdfdfd; border: 2px dashed #edf2f7; border-radius: 8px; margin-top: 1rem; }
   </style>
@@ -239,7 +240,10 @@ function treemapHtml(data: FileCoverage[]) {
 <body>
   <div class="treemap-container">
     <div class="header">
-      <h1 class="title">Code Coverage Treemap</h1>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 class="title">Code Coverage Treemap</h1>
+        <button id="copy-svg" class="filter-btn" title="Copy SVG code to clipboard">Copy SVG</button>
+      </div>
       <div class="summary">
         <span>Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></span>
         <div class="progress-bar" aria-hidden="true"><div id="html-progress-inner" class="progress-inner"></div></div>
@@ -261,20 +265,31 @@ function treemapHtml(data: FileCoverage[]) {
   <div id="toast" class="toast">Path copied to clipboard!</div>
   <script>
     let toastTimeout;
+    const showToast = (message) => {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+    };
+
     const copyPath = (rect) => {
       if (!rect) return;
       const path = rect.getAttribute('data-path');
       const filename = rect.getAttribute('data-filename') || 'file';
       navigator.clipboard.writeText(path).then(() => {
-        const toast = document.getElementById('toast');
-        toast.textContent = 'Copied path for ' + filename + '!';
-        toast.classList.add('show');
-        clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+        showToast('Copied path for ' + filename + '!');
       });
     };
 
     const svg = document.querySelector('svg');
+
+    document.getElementById('copy-svg').addEventListener('click', () => {
+      navigator.clipboard.writeText(svg.outerHTML).then(() => {
+        showToast('SVG copied to clipboard!');
+      });
+    });
+
     svg.addEventListener('click', (e) => {
       copyPath(e.target.closest('rect[data-path]'));
     });
@@ -356,6 +371,10 @@ function treemapHtml(data: FileCoverage[]) {
     };
 
     searchInput.addEventListener('input', performFilter);
+
+    document.querySelector('.search-hint').addEventListener('click', () => {
+      searchInput.focus();
+    });
 
     filterBtns.forEach((btn, index) => {
       btn.addEventListener('click', () => {
