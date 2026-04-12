@@ -242,7 +242,10 @@ function treemapHtml(data: FileCoverage[]) {
     <div class="header">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1 class="title">Code Coverage Treemap</h1>
-        <button id="copy-svg" class="filter-btn" title="Copy SVG code to clipboard">Copy SVG</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="copy-summary" class="filter-btn" title="Copy coverage summary to clipboard">Copy Summary</button>
+          <button id="copy-svg" class="filter-btn" title="Copy SVG code to clipboard">Copy SVG</button>
+        </div>
       </div>
       <div class="summary">
         <span>Overall Coverage: <strong id="html-summary-pct" class="summary-pct">${overallCoverage}%</strong> <span id="html-summary-counts">(${totalCovered}/${totalStmts} statements)</span></span>
@@ -287,6 +290,15 @@ function treemapHtml(data: FileCoverage[]) {
     document.getElementById('copy-svg').addEventListener('click', () => {
       navigator.clipboard.writeText(svg.outerHTML).then(() => {
         showToast('SVG copied to clipboard!');
+      });
+    });
+
+    document.getElementById('copy-summary').addEventListener('click', () => {
+      const pct = document.getElementById('html-summary-pct').textContent;
+      const counts = document.getElementById('html-summary-counts').textContent;
+      const summary = 'Coverage: ' + pct + ' ' + counts;
+      navigator.clipboard.writeText(summary).then(() => {
+        showToast('Summary copied to clipboard!');
       });
     });
 

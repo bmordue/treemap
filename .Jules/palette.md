@@ -45,3 +45,7 @@
 ## 2025-06-02 - [Tactile and Interactive Utility Hints]
 **Learning:** Micro-interactions like tactile feedback (e.g., scale(0.98) on :active) provide immediate confirmation of a click, making digital interfaces feel more physical and responsive. Furthermore, making keyboard shortcut hints (like '/') interactive—rather than just decorative—bridges the gap between power users and casual mouse users, reinforcing the feature's discoverability.
 **Action:** Always include tactile feedback states for interactive elements and ensure visual hints for shortcuts are themselves functional.
+
+## 2025-06-03 - [Plain-Text Summaries for Quick Reporting]
+**Learning:** While visual reports and interactive treemaps are great for exploration, users often need to share high-level metrics in text-based communication channels like Slack, emails, or pull request descriptions. Providing a "Copy Summary" button that extracts and formats the current coverage statistics into a concise plain-text string (e.g., "Coverage: 86% (6/7 statements)") significantly reduces friction for reporting tasks.
+**Action:** When presenting key metrics in a dashboard or report, always provide a one-click way to copy those metrics in a human-readable text format.
