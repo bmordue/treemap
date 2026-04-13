@@ -243,8 +243,8 @@ function treemapHtml(data: FileCoverage[]) {
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1 class="title">Code Coverage Treemap</h1>
         <div style="display: flex; gap: 0.5rem;">
-          <button id="copy-summary" class="filter-btn" title="Copy coverage summary to clipboard">Copy Summary</button>
-          <button id="copy-svg" class="filter-btn" title="Copy SVG code to clipboard">Copy SVG</button>
+          <button id="copy-summary" class="filter-btn" title="Copy coverage summary to clipboard"><span aria-hidden="true">📋</span> Copy Summary</button>
+          <button id="copy-svg" class="filter-btn" title="Copy SVG code to clipboard"><span aria-hidden="true">📋</span> Copy SVG</button>
         </div>
       </div>
       <div class="summary">
@@ -252,9 +252,9 @@ function treemapHtml(data: FileCoverage[]) {
         <div class="progress-bar" aria-hidden="true"><div id="html-progress-inner" class="progress-inner"></div></div>
       </div>
       <div class="filter-container" role="tablist" aria-label="Filter by coverage">
-        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true" tabindex="0">All Files (${data.length})</button>
-        <button class="filter-btn" data-filter="high" role="tab" aria-selected="false" tabindex="-1">High Coverage (${highCount})</button>
-        <button class="filter-btn" data-filter="low" role="tab" aria-selected="false" tabindex="-1">Low Coverage (${lowCount})</button>
+        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true" tabindex="0">All Files (<span id="all-count">${data.length}</span>)</button>
+        <button class="filter-btn" data-filter="high" role="tab" aria-selected="false" tabindex="-1">High Coverage (<span id="high-count">${highCount}</span>)</button>
+        <button class="filter-btn" data-filter="low" role="tab" aria-selected="false" tabindex="-1">Low Coverage (<span id="low-count">${lowCount}</span>)</button>
       </div>
       <div class="search-container">
         <input type="search" id="search" placeholder="Search files..." aria-label="Search files by name or path">
@@ -262,7 +262,7 @@ function treemapHtml(data: FileCoverage[]) {
       </div>
       <div id="search-info" class="search-info" aria-live="polite"></div>
     </div>
-    <div id="no-results">No matching files found.</div>
+    <div id="no-results">No matching files found. <a href="#" id="clear-filters" style="color: #3182ce; text-decoration: underline;">Clear all filters</a></div>
     ${svg}
   </div>
   <div id="toast" class="toast">Path copied to clipboard!</div>
@@ -326,6 +326,10 @@ function treemapHtml(data: FileCoverage[]) {
       let totalVisibleStmts = 0;
       let totalVisibleCovered = 0;
 
+      let searchMatchesAll = 0;
+      let searchMatchesHigh = 0;
+      let searchMatchesLow = 0;
+
       fileGroups.forEach(group => {
         const filename = group.getAttribute('data-filename').toLowerCase();
         const path = group.getAttribute('data-path').toLowerCase();
@@ -334,6 +338,13 @@ function treemapHtml(data: FileCoverage[]) {
         const ratio = statements > 0 ? covered / statements : 0;
 
         const matchesSearch = filename.includes(query) || path.includes(query);
+
+        if (matchesSearch) {
+          searchMatchesAll++;
+          if (ratio > ${coverageThreshold}) searchMatchesHigh++;
+          else searchMatchesLow++;
+        }
+
         let matchesFilter = true;
         if (activeFilter === 'high') matchesFilter = ratio > ${coverageThreshold};
         else if (activeFilter === 'low') matchesFilter = ratio <= ${coverageThreshold};
@@ -347,6 +358,10 @@ function treemapHtml(data: FileCoverage[]) {
           group.classList.add('hidden');
         }
       });
+
+      document.getElementById('all-count').textContent = searchMatchesAll;
+      document.getElementById('high-count').textContent = searchMatchesHigh;
+      document.getElementById('low-count').textContent = searchMatchesLow;
 
       const coverageRatio = totalVisibleStmts > 0 ? totalVisibleCovered / totalVisibleStmts : 0;
       const coveragePct = Math.round(coverageRatio * 100);
@@ -386,6 +401,14 @@ function treemapHtml(data: FileCoverage[]) {
 
     document.querySelector('.search-hint').addEventListener('click', () => {
       searchInput.focus();
+    });
+
+    document.getElementById('clear-filters').addEventListener('click', (e) => {
+      e.preventDefault();
+      searchInput.value = '';
+      const allBtn = document.querySelector('.filter-btn[data-filter="all"]');
+      if (allBtn) allBtn.click();
+      else performFilter();
     });
 
     filterBtns.forEach((btn, index) => {
