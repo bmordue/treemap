@@ -49,3 +49,7 @@
 ## 2025-06-03 - [Plain-Text Summaries for Quick Reporting]
 **Learning:** While visual reports and interactive treemaps are great for exploration, users often need to share high-level metrics in text-based communication channels like Slack, emails, or pull request descriptions. Providing a "Copy Summary" button that extracts and formats the current coverage statistics into a concise plain-text string (e.g., "Coverage: 86% (6/7 statements)") significantly reduces friction for reporting tasks.
 **Action:** When presenting key metrics in a dashboard or report, always provide a one-click way to copy those metrics in a human-readable text format.
+
+## 2025-06-04 - [Dark Mode for Data Visualizations]
+**Learning:** Providing system-adaptive themes (Dark Mode) for data visualizations and reports significantly improves user comfort, especially for developers who often prefer dark IDE themes. Using CSS variables combined with '@media (prefers-color-scheme: dark)' allows for a clean implementation that works in both HTML containers and standalone SVG exports.
+**Action:** Always implement CSS variables for colors in visualization templates to facilitate easy theme adaptation and accessibility improvements.
