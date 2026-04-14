@@ -171,20 +171,34 @@ function treemapSvg(data: FileCoverage[]): string {
       <stop offset="100%" stop-color="#d55e00" stop-opacity="1" />
     </linearGradient>
     <style>
+      :root {
+        --svg-bg: white;
+        --svg-text: #333;
+        --svg-text-muted: #666;
+        --svg-border: #333;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --svg-bg: #1a202c;
+          --svg-text: #f7fafc;
+          --svg-text-muted: #a0aec0;
+          --svg-border: #f7fafc;
+        }
+      }
       rect { transition: filter 0.2s, transform 0.2s, outline 0.2s; outline: none; cursor: pointer; transform-origin: center; transform-box: fill-box; }
-      rect:hover, rect:focus-visible { filter: brightness(1.1); transform: scale(1.02); outline: 2px solid #333; outline-offset: 1px; }
+      rect:hover, rect:focus-visible { filter: brightness(1.1); transform: scale(1.02); outline: 2px solid var(--svg-border); outline-offset: 1px; }
       rect:active { transform: scale(0.98); }
-      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--svg-text); }
       .legend-label { font-size: 9px; }
-      .legend-note { font-size: 7px; fill: #666; }
-      .rect-label { font-size: 10px; font-weight: bold; fill: #333; }
-      .rect-sublabel { font-size: 8px; fill: #333; }
-      .summary-text { font-size: 10px; font-weight: bold; fill: #333; }
+      .legend-note { font-size: 7px; fill: var(--svg-text-muted); }
+      .rect-label { font-size: 10px; font-weight: bold; fill: var(--svg-text); }
+      .rect-sublabel { font-size: 8px; fill: var(--svg-text); }
+      .summary-text { font-size: 10px; font-weight: bold; fill: var(--svg-text); }
       .file-group { transition: opacity 0.3s; }
       .file-group.hidden { display: none; }
     </style>
   </defs>
-  <rect x="0" y="0" width="${width}" height="${svgHeight}" fill="white" />
+  <rect x="0" y="0" width="${width}" height="${svgHeight}" fill="var(--svg-bg)" />
   <g>${rects}</g>
   <g aria-label="Legend">
     <rect x="0" y="${legendY}" width="12" height="12" fill="#009e73" opacity="0.5" rx="2"/>
@@ -208,33 +222,57 @@ function treemapHtml(data: FileCoverage[]) {
   const highCount = data.filter(d => d.statementCoverage > coverageThreshold).length;
   const lowCount = data.filter(d => d.statementCoverage <= coverageThreshold).length;
 
-  return `<html>
+  return `<html lang="en">
 <head>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2rem; background: #f8f9fa; }
-    .treemap-container { max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    .header { margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
-    .title { font-size: 1.5rem; font-weight: bold; color: #1a202c; margin: 0; }
-    .summary { font-size: 1rem; color: #4a5568; margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    :root {
+      --bg-color: #f8f9fa;
+      --card-bg: white;
+      --text-primary: #1a202c;
+      --text-secondary: #4a5568;
+      --border-color: #eee;
+      --input-bg: white;
+      --input-border: #e2e8f0;
+      --btn-bg: white;
+      --btn-hover-bg: #f7fafc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #1a202c;
+        --card-bg: #2d3748;
+        --text-primary: #f7fafc;
+        --text-secondary: #a0aec0;
+        --border-color: #4a5568;
+        --input-bg: #1a202c;
+        --input-border: #4a5568;
+        --btn-bg: #2d3748;
+        --btn-hover-bg: #4a5568;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2rem; background: var(--bg-color); color: var(--text-primary); }
+    .treemap-container { max-width: 800px; margin: 0 auto; background: var(--card-bg); padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .header { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+    .title { font-size: 1.5rem; font-weight: bold; color: var(--text-primary); margin: 0; }
+    .summary { font-size: 1rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .summary-pct { font-weight: bold; color: ${summaryColor}; }
-    .progress-bar { flex: 1; min-width: 200px; height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; }
+    .progress-bar { flex: 1; min-width: 200px; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; }
     .progress-inner { height: 100%; width: ${overallCoverage}%; background: ${summaryColor}; transition: width 0.3s ease, background-color 0.3s ease; }
-    svg { width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 4px; }
+    svg { width: 100%; height: auto; display: block; border: 1px solid var(--border-color); border-radius: 4px; }
     .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; }
     .filter-container { margin-top: 1rem; display: flex; gap: 0.5rem; }
-    .filter-btn { padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px; background: white; font-size: 0.75rem; color: #4a5568; cursor: pointer; transition: all 0.2s; }
-    .filter-btn:hover { background: #f7fafc; border-color: #cbd5e0; }
+    .filter-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--btn-bg); font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover { background: var(--btn-hover-bg); border-color: var(--border-color); }
     .filter-btn:focus-visible { outline: 2px solid #3182ce; outline-offset: 2px; }
     .filter-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
     .search-container { margin-top: 0.75rem; position: relative; display: flex; align-items: center; }
-    #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #search { width: 100%; padding: 0.6rem 1rem; padding-right: 2.5rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-primary); border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     #search:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1); }
     #search:focus + .search-hint { opacity: 0; visibility: hidden; }
     .search-hint { position: absolute; right: 0.75rem; cursor: pointer; transition: opacity 0.2s, visibility 0.2s; }
-    kbd { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: #a0aec0; font-family: inherit; cursor: pointer; }
-    .search-info { font-size: 0.75rem; color: #718096; margin-top: 0.4rem; min-height: 1.2em; }
-    #no-results { display: none; padding: 3rem; text-align: center; color: #718096; background: #fdfdfd; border: 2px dashed #edf2f7; border-radius: 8px; margin-top: 1rem; }
+    kbd { background: var(--btn-hover-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; color: var(--text-secondary); font-family: inherit; cursor: pointer; }
+    .search-info { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; min-height: 1.2em; }
+    #no-results { display: none; padding: 3rem; text-align: center; color: var(--text-secondary); background: var(--bg-color); border: 2px dashed var(--border-color); border-radius: 8px; margin-top: 1rem; }
   </style>
 </head>
 <body>
